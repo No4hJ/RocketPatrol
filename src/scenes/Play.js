@@ -45,7 +45,7 @@ class Play extends Phaser.Scene{
         'spaceship', 0, 30).setOrigin(0, 0);
         this.ship02 = new Spaceship(this, game.config.width + borderUISize*3, borderUISize*5 +
         borderPadding*2, 'spaceship', 0, 20).setOrigin(0, 0);
-        this.ship03 = new Spaceship(this, game.config.width,borderUISize*6 + borderUISize*4,
+        this.ship03 = new Spaceship(this, game.config.width,borderUISize*6 + borderPadding*4,
         'spaceship', 0, 10).setOrigin(0, 0);
             
 
@@ -65,17 +65,59 @@ class Play extends Phaser.Scene{
             }),
             frameRate: 30
         });
+
+        // initialize score
+        this.p1Score = 0;
+        // display score
+        let scoreConfig = {
+            fontFamily: 'Courier',
+            fontSize: '28px',
+            backgroundColor: '#F3B141',
+            color: '#843605',
+            align: 'right',
+            padding: {
+                top: 5,
+                bottom: 5,
+            },
+            fixedWidth: 100
+        };
+        this.scoreLeft = this.add.text(borderUISize + borderPadding, borderUISize + 
+        borderPadding*2, this.p1Score, scoreConfig);
+        // GAME OVER flag
+        this.gameOver = false;
+
+        // 60-second play clock
+        scoreConfig.fixedWidth = 0;
+        this.clock = this.time.delayedCall(game.settings.gameTimer, () => {
+            this.add.text (game.config.width/2, game.config.height/2, 'GAME OVER', scoreConfig).
+            setOrigin(0,5);
+            this.add.text(game.config.width/2, game.config.height/2 + 64, '(R) to Restart or <- for Menu',
+            scoreConfig).setOrigin(0.5);
+            this.gameOver = true;
+        }, null, this);
     }
 
     update(){
+        // check key input for restart
+        if (this.gameOver && Phaser.Input.Keyboard.JustDown(keyR)) {
+            this.scene.restart();
+        }   
+            
+        // check key input for returning to menu
+        if (this.gameOver && Phaser.Input.Keyboard.JustDown(keyLEFT)) {
+            this.scene.start("menuScene");
+        }
+
         this.starfield.tilePositionX -= starSpeed;
 
-        // update rocket
-        this.p1Rocket.update();
-        // update spaceships (x3)
-        this.ship01.update();
-        this.ship02.update();
-        this.ship03.update();
+        if(!this.gameOver) {
+            // update rocket
+            this.p1Rocket.update();
+            // update spaceships (x3)
+            this.ship01.update();
+            this.ship02.update();
+            this.ship03.update();
+        }
 
         // check collisions
         if(this.checkCollision(this.p1Rocket, this.ship03)){
@@ -115,6 +157,11 @@ class Play extends Phaser.Scene{
             ship.reset();
             ship.alpha = 1;
             boom.destroy();
-        })
+        });
+        // score add and repaint
+        this.p1Score += ship.points;
+        this.scoreLeft.text = this.p1Score;
+        // play sfx
+        this.sound.play('sfx_explosion');
     }
 }
